@@ -118,15 +118,18 @@ async def guess(ctx, *, city_name):
         game_active = False
         return
 
-    # Verifica se o nome da cidade corresponde
     if normalize_text(city_name) == normalize_text(current_city):
         winner_found = True
         game_active = False
         await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
         await ctx.send(f"📍 A cidade correta era **{current_city}**.")
-        await ctx.send(f"/xp add user: {ctx.author.mention} amount: 12500")
+        
+        # Adicionando XP para o usuário
+        xp_amount = 12500  # Quantidade de XP a ser adicionada
+        await ctx.send(f"/xp add user: {ctx.author.mention} amount: {xp_amount}")
     else:
         await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
+
 
 # Rodar bot
 bot.run(os.environ["DISCORD_TOKEN"])
