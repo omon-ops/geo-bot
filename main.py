@@ -46,8 +46,11 @@ def get_random_location():
 
     image_response = requests.get(mapillary_url)
     image_data = image_response.json()
-  image_url = image_data["data"][0].get("thumb_2048_url") if "data" in image_data and len(image_data["data"]) > 0 else None
-
+    image_url = (
+        image_data["data"][0].get("thumb_2048_url")
+        if "data" in image_data and len(image_data["data"]) > 0
+        else None
+    )
 
     return city_name, latitude, longitude, image_url
 
