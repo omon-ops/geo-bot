@@ -4,7 +4,6 @@ from discord.ext import commands
 import requests
 import random
 import asyncio
-import unicodedata
 
 # Intents
 intents = discord.Intents.default()
@@ -13,31 +12,36 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Normaliza nomes para comparação
-def normalize_text(text):
-    return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('ascii').strip().lower()
+# Função para obter a imagem de rua e cidade mais próxima usando Mapillary
+def get_random_street_image():
+    # Gerar coordenadas aleatórias para a imagem
+    latitude = random.uniform(-90, 90)
+    longitude = random.uniform(-180, 180)
 
-# Gera cidade aleatória e latitude/longitude
-def get_random_location():
-    geo_url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
-    geo_headers = {
-        "X-RapidAPI-Key": os.environ["GEODB_KEY"],
-        "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com"
-    }
-    geo_params = {
-        "limit": "1",
-        "offset": str(random.randint(0, 1000)),
-        "types": "CITY"
-    }
+    # Mapillary API para obter imagem de rua
+    mapillary_token = os.environ["MAPILLARY_TOKEN"]
+    mapillary_url = (
+        f"https://graph.mapillary.com/images"
+        f"?access_token={mapillary_token}"
+        f"&fields=thumb_2048_url"
+        f"&closeto={longitude},{latitude}"
+        f"&limit=1"
+    )
 
-    geo_response = requests.get(geo_url, headers=geo_headers, params=geo_params)
-    geo_data = geo_response.json()
-    city_info = geo_data["data"][0]
-    city_name = city_info["city"]
-    latitude = city_info["latitude"]
-    longitude = city_info["longitude"]
+    # Obter a imagem de rua mais próxima
+    image_response = requests.get(mapillary_url)
+    image_data = image_response.json()
 
-    return city_name, latitude, longitude
+    image_url = (
+        image_data["data"][0].get("thumb_2048_url")
+        if "data" in image_data and len(image_data["data"]) > 0
+        else None
+    )
+
+    # Obter cidade mais próxima (para verificação)
+    city_name = "Cidade Aleatória"  # Aqui, você pode pegar o nome real da cidade a partir das coordenadas, se necessário
+
+    return city_name, image_url
 
 # Estado do jogo
 current_city = None
@@ -57,22 +61,25 @@ async def start_game(ctx):
         await ctx.send("⚠️ Já existe um jogo em andamento!")
         return
 
-    current_city, lat, lon = get_random_location()
+    current_city, img_url = get_random_street_image()
     game_active = True
     winner_found = False
 
     await ctx.send(
         f"🧭 Jogo de Geo-Caching iniciado!\n"
-        f"🌍 Latitude: {lat}, Longitude: {lon}\n"
-        f"🕐 Tens 60 segundos para adivinhar a cidade!"
+        f"🕐 Tens 60 segundos para adivinhar a cidade com base na imagem!"
     )
+
+    if img_url:
+        await ctx.send(img_url)  # Envia a imagem de rua
+    else:
+        await ctx.send("⚠️ Não foi possível carregar uma imagem de rua para este local.")
 
     start_time = asyncio.get_event_loop().time()
     await asyncio.sleep(60)
 
     if not winner_found:
-        await ctx.send("⏰ Tempo esgotado! Ninguém acertou desta vez.")
-        await ctx.send(f"📍 A cidade correta era **{current_city}**.")
+        await ctx.send(f"⏰ Tempo esgotado! Ninguém acertou desta vez. A cidade correta era **{current_city}**.")
     game_active = False
 
 @bot.command()
@@ -93,7 +100,8 @@ async def guess(ctx, *, city_name):
         game_active = False
         return
 
-    if normalize_text(city_name) == normalize_text(current_city):
+    # Comparando a resposta do jogador com a cidade correta
+    if city_name.strip().lower() == current_city.lower():
         winner_found = True
         game_active = False
         await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
