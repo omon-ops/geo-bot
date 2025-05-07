@@ -15,7 +15,7 @@ def get_random_location():
     # Usando a API GeoDB Cities (você pode substituir por outra)
     url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
     headers = {
-        "X-RapidAPI-Key": "SUA_API_KEY_AQUI",
+       "X-RapidAPI-Key": os.environ["SUA_API_KEY_AQUI"],
         "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com"
     }
 
