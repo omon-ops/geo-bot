@@ -87,14 +87,14 @@ async def answer_quote(ctx, *, guess):
         winner_user = ctx.author
 
         class RewardButton(discord.ui.View):
-            @discord.ui.button(label="🎁 Dar XP (12500)", style=discord.ButtonStyle.green)
+            @discord.ui.button(label="🎁 Dar XP (21500)", style=discord.ButtonStyle.green)
             async def give_xp(self, interaction: discord.Interaction, button: discord.ui.Button):
                 if not interaction.user.guild_permissions.manage_guild:
                     await interaction.response.send_message("❌ Apenas moderadores podem usar este botão.", ephemeral=True)
                     return
 
                 await interaction.response.send_message(
-                    f"/xp add user: {winner_user.mention} amount: 12500"
+                    f"/xp add user: {winner_user.mention} amount: 21500"
                 )
 
         await ctx.send(
