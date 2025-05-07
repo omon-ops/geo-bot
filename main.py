@@ -79,8 +79,9 @@ async def guess(ctx, *, city_name):
         await ctx.send("⏳ O tempo para adivinhar já acabou.")
         return
 
+    # Comparar a cidade fornecida com a cidade correta
     if city_name.strip().lower() == current_city.lower():
-        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
+        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente! A cidade é **{current_city}**.")
     else:
         await ctx.send(f"❌ Errado {ctx.author.mention}, a cidade correta era **{current_city}**.")
 
