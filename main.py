@@ -42,11 +42,13 @@ def get_random_location():
     )
 
     image_response = requests.get(mapillary_url)
-    try:
-        image_data = image_response.json()
-        image_url = image_data["data"][0]["thumb_2048_url"]
-    except (KeyError, IndexError):
-        image_url = None  # Se não encontrar imagem
+    image_data = image_response.json()
+
+    # Verificar se a resposta contém imagens
+    if "data" in image_data and len(image_data["data"]) > 0:
+        image_url = image_data["data"][0].get("thumb_2048_url")
+    else:
+        image_url = None  # Se não houver imagem, atribuir None
 
     return city_name, latitude, longitude, image_url
 
