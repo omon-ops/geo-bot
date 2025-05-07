@@ -20,12 +20,10 @@ def get_agents_and_quotes():
     soup = BeautifulSoup(response.content, 'html.parser')
 
     agents = []
-    # Aqui, dependendo da estrutura da página, você vai pegar os dados de cada agente.
-    # Vamos assumir que os nomes dos agentes estão em <h2> e as frases em <p>
-    agent_elements = soup.find_all("div", class_="agent-card")  # Exemplo de classe, ajuste conforme o site real
+    agent_elements = soup.find_all("div", class_="agent-card")  # Ajuste conforme a estrutura da página
     for agent in agent_elements:
         name = agent.find("h2").get_text(strip=True)
-        quotes = [quote.get_text(strip=True) for quote in agent.find_all("p")]  # Vamos pegar todas as frases em <p>
+        quotes = [quote.get_text(strip=True) for quote in agent.find_all("p")]  # Pegue as frases em <p>
         
         if name and quotes:
             agents.append({"name": name, "quotes": quotes})
@@ -59,10 +57,11 @@ async def on_ready():
         print(f"Comando registrado: {command.name}")
 
 @bot.command()
-async def start_game(ctx):
+async def rq(ctx):
+    """Inicia o jogo com uma frase aleatória"""
     global current_agent, current_quote, start_time, game_active, winner_found
 
-    print("Comando start_game foi chamado.")  # Debugging
+    print("Comando rq foi chamado.")  # Debugging
 
     if game_active:
         await ctx.send("⚠️ Já existe um jogo em andamento!")
@@ -95,7 +94,8 @@ async def start_game(ctx):
     game_active = False
 
 @bot.command()
-async def guess(ctx, *, phrase):
+async def aq(ctx, *, agent_name: str):
+    """Responde com o nome do agente para adivinhar a frase"""
     global current_quote, start_time, game_active, winner_found
 
     if not game_active:
@@ -112,12 +112,12 @@ async def guess(ctx, *, phrase):
         game_active = False
         return
 
-    if phrase.strip().lower() == current_quote.strip().lower():
+    # Verifique se a resposta do usuário corresponde ao nome do agente
+    if agent_name.strip().lower() == current_agent.strip().lower():
         winner_found = True
         game_active = False
         await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
         await ctx.send(f"📍 A frase correta era **{current_quote}**.")
-        await ctx.send(f"/xp add user: {ctx.author.mention} amount: 12500")
     else:
         await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
 
