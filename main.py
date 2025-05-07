@@ -37,7 +37,9 @@ def get_random_location():
     latitude = city_info["latitude"]
     longitude = city_info["longitude"]
 
-    # Mapillary (imagem) - não essencial para a comparação de cidade
+    print(f"Nome da cidade retornado pela API: {city_name}")
+
+    # Mapillary (imagem)
     mapillary_token = os.environ["MAPILLARY_TOKEN"]
     mapillary_url = (
         f"https://graph.mapillary.com/images"
@@ -56,6 +58,7 @@ def get_random_location():
     )
 
     return city_name, latitude, longitude, image_url
+
 
 # Estado do jogo
 current_city = None
