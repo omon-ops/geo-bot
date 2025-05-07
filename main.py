@@ -31,9 +31,11 @@ def get_random_quote():
     soup = BeautifulSoup(response.content, 'html.parser')
     quotes = []
 
+    # Pega todas as frases em <ul><li> e filtra apenas as que são frases
     for li in soup.select("ul > li"):
         text = li.get_text(strip=True)
-        if 20 < len(text) < 200:
+        # Filtra as frases que não contêm links (ou outras informações extras)
+        if 20 < len(text) < 200 and "http" not in text and "www" not in text:
             quotes.append(text)
 
     if not quotes:
