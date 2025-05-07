@@ -14,7 +14,6 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 # Função para obter a imagem de rua e cidade mais próxima usando Mapillary
 def get_random_street_image():
-    # Gerar coordenadas aleatórias para a imagem
     latitude = random.uniform(-90, 90)
     longitude = random.uniform(-180, 180)
 
@@ -38,8 +37,7 @@ def get_random_street_image():
         else None
     )
 
-    # Obter cidade mais próxima (para verificação)
-    city_name = "Cidade Aleatória"  # Aqui, você pode pegar o nome real da cidade a partir das coordenadas, se necessário
+    city_name = "Cidade Aleatória"  # Nome fictício da cidade. Você pode substituir com uma API real.
 
     return city_name, image_url
 
@@ -60,6 +58,9 @@ async def start_game(ctx):
     if game_active:
         await ctx.send("⚠️ Já existe um jogo em andamento!")
         return
+
+    # Debug: Verificar se o comando chegou aqui
+    print("Comando start_game foi chamado!")
 
     current_city, img_url = get_random_street_image()
     game_active = True
@@ -100,7 +101,6 @@ async def guess(ctx, *, city_name):
         game_active = False
         return
 
-    # Comparando a resposta do jogador com a cidade correta
     if city_name.strip().lower() == current_city.lower():
         winner_found = True
         game_active = False
