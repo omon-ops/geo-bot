@@ -21,8 +21,9 @@ def get_agents_and_quotes():
     soup = BeautifulSoup(response.content, 'html.parser')
 
     agents = []
-    # Aqui, dependendo da estrutura da página, você vai pegar os dados de cada agente.
     agent_elements = soup.find_all("div", class_="agent-card")  # Exemplo de classe, ajuste conforme o site real
+    print(f"Encontrado {len(agent_elements)} agentes.")  # Debugging
+    
     for agent in agent_elements:
         name = agent.find("h2").get_text(strip=True)
         quotes = [quote.get_text(strip=True) for quote in agent.find_all("p")]  # Vamos pegar todas as frases em <p>
