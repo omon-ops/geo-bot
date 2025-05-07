@@ -17,13 +17,12 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 def get_agents_and_quotes():
     url = "https://kingdomarchives.com/agents"
     response = requests.get(url)
-    print(f"Status da requisição: {response.status_code}")  # Debugging
     soup = BeautifulSoup(response.content, 'html.parser')
 
     agents = []
+    # Aqui, dependendo da estrutura da página, você vai pegar os dados de cada agente.
+    # Vamos assumir que os nomes dos agentes estão em <h2> e as frases em <p>
     agent_elements = soup.find_all("div", class_="agent-card")  # Exemplo de classe, ajuste conforme o site real
-    print(f"Encontrado {len(agent_elements)} agentes.")  # Debugging
-    
     for agent in agent_elements:
         name = agent.find("h2").get_text(strip=True)
         quotes = [quote.get_text(strip=True) for quote in agent.find_all("p")]  # Vamos pegar todas as frases em <p>
