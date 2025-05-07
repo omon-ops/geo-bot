@@ -4,7 +4,6 @@ from discord.ext import commands
 import requests
 import random
 import asyncio
-from bs4 import BeautifulSoup
 
 # Intents
 intents = discord.Intents.default()
@@ -13,93 +12,74 @@ intents.members = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Função para pegar a lista de agentes e frases do site
-def get_agents_and_quotes():
-    url = "https://kingdomarchives.com/agents"
-    response = requests.get(url)
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    agents = []
-    agent_elements = soup.find_all("div", class_="agent-card")  # Ajuste conforme a estrutura da página
-    for agent in agent_elements:
-        name = agent.find("h2").get_text(strip=True)
-        quotes = [quote.get_text(strip=True) for quote in agent.find_all("p")]  # Pegue as frases em <p>
-        
-        if name and quotes:
-            agents.append({"name": name, "quotes": quotes})
-
-    return agents
-
-# Função para escolher um agente e uma frase aleatória
-def get_random_agent_and_quote():
-    agents = get_agents_and_quotes()
-    if not agents:
-        return None, None
-
-    random_agent = random.choice(agents)
-    agent_name = random_agent["name"]
-    random_quote = random.choice(random_agent["quotes"])
-
-    return agent_name, random_quote
-
 # Estado do jogo
 current_agent = None
-current_quote = None
-start_time = None
+current_audio_url = None
 game_active = False
 winner_found = False
+start_time = None
+
+# Função para obter agente aleatório e frase
+def get_random_quote_from_valorant_api():
+    url = "https://valorant-api.com/v1/agents?isPlayableCharacter=true&language=pt-BR"
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None, None, None
+
+    data = response.json()
+    agents = data.get("data", [])
+    if not agents:
+        return None, None, None
+
+    agent = random.choice(agents)
+    name = agent["displayName"]
+
+    voice_lines = agent.get("voiceLine", {}).get("mediaList", [])
+    if not voice_lines:
+        return None, None, None
+
+    selected_line = random.choice(voice_lines)
+    audio_url = selected_line.get("wave", None)
+
+    return name, "Ouça esta frase e adivinhe o agente:", audio_url
 
 @bot.event
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
-    print("Bot está pronto para receber comandos.")
-    for command in bot.commands:
-        print(f"Comando registrado: {command.name}")
 
-@bot.command()
-async def rq(ctx):
-    """Inicia o jogo com uma frase aleatória"""
-    global current_agent, current_quote, start_time, game_active, winner_found
-
-    print("Comando rq foi chamado.")  # Debugging
+@bot.command(name="rq")
+async def start_quote_game(ctx):
+    global current_agent, current_audio_url, game_active, winner_found, start_time
 
     if game_active:
-        await ctx.send("⚠️ Já existe um jogo em andamento!")
+        await ctx.send("⚠️ Um jogo já está em andamento!")
         return
 
-    # Obter agente e frase aleatória
-    current_agent, current_quote = get_random_agent_and_quote()
+    current_agent, message, current_audio_url = get_random_quote_from_valorant_api()
 
-    if not current_agent:
-        await ctx.send("❌ Não foi possível carregar os agentes ou frases. Tente novamente mais tarde.")
+    if not current_agent or not current_audio_url:
+        await ctx.send("❌ Não foi possível buscar uma frase. Tente novamente mais tarde.")
         return
 
     game_active = True
     winner_found = False
-
-    # Embaralha a frase para dificultar a adivinhação
-    scrambled_quote = ''.join(random.sample(current_quote, len(current_quote)))
-
-    await ctx.send(
-        f"🧭 Jogo de Adivinhação de Frases iniciado!\n"
-        f"💬 Frase embaralhada do agente **{current_agent}**: {scrambled_quote}\n"
-        f"🕐 Tens 60 segundos para adivinhar a frase!"
-    )
-
     start_time = asyncio.get_event_loop().time()
+
+    await ctx.send("🎮 Jogo iniciado! Ouça a frase abaixo e adivinhe o agente digitando `!aq nome_do_agente`.")
+    await ctx.send(current_audio_url)
+
     await asyncio.sleep(60)
 
     if not winner_found:
-        await ctx.send(f"⏰ Tempo esgotado! Ninguém acertou desta vez. A frase correta era **{current_quote}**.")
+        await ctx.send(f"⏰ Tempo esgotado! A resposta correta era **{current_agent}**.")
     game_active = False
 
-@bot.command()
-async def aq(ctx, *, agent_name: str):
-    """Responde com o nome do agente para adivinhar a frase"""
-    global current_quote, start_time, game_active, winner_found
+@bot.command(name="aq")
+async def guess_agent(ctx, *, guess):
+    global current_agent, game_active, winner_found, start_time
 
     if not game_active:
-        await ctx.send("❌ Nenhum jogo em andamento.")
+        await ctx.send("❌ Nenhum jogo em andamento. Use `!rq` para começar.")
         return
 
     if winner_found:
@@ -108,18 +88,18 @@ async def aq(ctx, *, agent_name: str):
 
     elapsed_time = asyncio.get_event_loop().time() - start_time
     if elapsed_time > 60:
-        await ctx.send("⏳ O tempo para adivinhar já acabou.")
         game_active = False
+        await ctx.send("⏳ O tempo acabou! Use `!rq` para jogar novamente.")
         return
 
-    # Verifique se a resposta do usuário corresponde ao nome do agente
-    if agent_name.strip().lower() == current_agent.strip().lower():
+    if guess.strip().lower() == current_agent.strip().lower():
         winner_found = True
         game_active = False
-        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
-        await ctx.send(f"📍 A frase correta era **{current_quote}**.")
+        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você acertou!")
+        await ctx.send(f"✅ A resposta era: **{current_agent}**.")
+        await ctx.send(f"/xp add user: {ctx.author.mention} amount: 12500")
     else:
         await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
 
-# Rodar bot
-bot.run(os.environ["DISCORD_TOKEN"])  # Ou diretamente com o seu token aqui
+# Iniciar bot
+bot.run(os.environ["DISCORD_TOKEN"])
