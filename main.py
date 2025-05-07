@@ -17,7 +17,7 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 def normalize_text(text):
     return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('ascii').strip().lower()
 
-# Gera cidade aleatória + imagem (se houver)
+# Gera cidade aleatória e latitude/longitude
 def get_random_location():
     geo_url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
     geo_headers = {
@@ -37,28 +37,7 @@ def get_random_location():
     latitude = city_info["latitude"]
     longitude = city_info["longitude"]
 
-    print(f"Nome da cidade retornado pela API: {city_name}")
-
-    # Mapillary (imagem)
-    mapillary_token = os.environ["MAPILLARY_TOKEN"]
-    mapillary_url = (
-        f"https://graph.mapillary.com/images"
-        f"?access_token={mapillary_token}"
-        f"&fields=thumb_2048_url"
-        f"&closeto={longitude},{latitude}"
-        f"&limit=1"
-    )
-
-    image_response = requests.get(mapillary_url)
-    image_data = image_response.json()
-    image_url = (
-        image_data["data"][0].get("thumb_2048_url")
-        if "data" in image_data and len(image_data["data"]) > 0
-        else None
-    )
-
-    return city_name, latitude, longitude, image_url
-
+    return city_name, latitude, longitude
 
 # Estado do jogo
 current_city = None
@@ -72,46 +51,29 @@ async def on_ready():
 
 @bot.command()
 async def start_game(ctx):
-    global current_city, start_time, game_active, winner_found, current_lat, current_lon, current_image_url
+    global current_city, start_time, game_active, winner_found
 
     if game_active:
         await ctx.send("⚠️ Já existe um jogo em andamento!")
         return
 
-    # Gera a cidade, latitude, longitude e imagem
-    current_city, current_lat, current_lon, current_image_url = get_random_location()
-    
+    current_city, lat, lon = get_random_location()
     game_active = True
     winner_found = False
 
-    # Mensagem inicial com latitude e longitude
     await ctx.send(
         f"🧭 Jogo de Geo-Caching iniciado!\n"
-        f"🌍 Latitude: {current_lat}, Longitude: {current_lon}\n"
+        f"🌍 Latitude: {lat}, Longitude: {lon}\n"
         f"🕐 Tens 60 segundos para adivinhar a cidade!"
     )
 
-    # Mostrar a imagem, se disponível
-    if current_image_url:
-        await ctx.send(current_image_url)
-    else:
-        await ctx.send("⚠️ Não foi possível carregar uma imagem de rua para este local.")
-
-    # Inicia o contador de tempo
     start_time = asyncio.get_event_loop().time()
     await asyncio.sleep(60)
 
     if not winner_found:
-        # Se o tempo expirar e ninguém adivinhar corretamente
-        await ctx.send(f"⏰ Tempo esgotado! Ninguém acertou desta vez.")
+        await ctx.send("⏰ Tempo esgotado! Ninguém acertou desta vez.")
         await ctx.send(f"📍 A cidade correta era **{current_city}**.")
-        
-        if current_image_url:
-            await ctx.send(f"📸 Aqui está a imagem correspondente à latitude e longitude fornecida:")
-            await ctx.send(current_image_url)  # Mostrar a imagem
-
     game_active = False
-
 
 @bot.command()
 async def guess(ctx, *, city_name):
@@ -136,13 +98,9 @@ async def guess(ctx, *, city_name):
         game_active = False
         await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
         await ctx.send(f"📍 A cidade correta era **{current_city}**.")
-        
-        # Adicionando XP para o usuário
-        xp_amount = 12500  # Quantidade de XP a ser adicionada
-        await ctx.send(f"/xp add user: {ctx.author.mention} amount: {xp_amount}")
+        await ctx.send(f"/xp add user: {ctx.author.mention} amount: 12500")
     else:
         await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
-
 
 # Rodar bot
 bot.run(os.environ["DISCORD_TOKEN"])
