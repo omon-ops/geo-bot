@@ -6,16 +6,18 @@ import random
 import asyncio
 import unicodedata
 
+# Intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Função para normalizar nomes de cidades
+# Normaliza nomes para comparação
 def normalize_text(text):
     return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('ascii').strip().lower()
 
-# Função para obter cidade e imagem
+# Gera cidade aleatória + imagem (se houver)
 def get_random_location():
     geo_url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
     geo_headers = {
@@ -35,6 +37,7 @@ def get_random_location():
     latitude = city_info["latitude"]
     longitude = city_info["longitude"]
 
+    # Mapillary (imagem)
     mapillary_token = os.environ["MAPILLARY_TOKEN"]
     mapillary_url = (
         f"https://graph.mapillary.com/images"
@@ -54,7 +57,7 @@ def get_random_location():
 
     return city_name, latitude, longitude, image_url
 
-# Variáveis de estado
+# Estado do jogo
 current_city = None
 start_time = None
 game_active = False
@@ -121,3 +124,5 @@ async def guess(ctx, *, city_name):
     else:
         await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
 
+# Rodar bot
+bot.run(os.environ["DISCORD_TOKEN"])
