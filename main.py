@@ -5,6 +5,7 @@ import requests
 import random
 import asyncio
 from bs4 import BeautifulSoup
+from discord.ui import View, Button
 
 # Intents
 intents = discord.Intents.default()
@@ -12,7 +13,6 @@ intents.message_content = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Lista dos agentes válidos (nomes devem estar conforme aparecem na URL)
 AGENTS = [
     "Brimstone", "Phoenix", "Sage", "Sova", "Viper", "Cypher", "Reyna", "Killjoy", "Breach", "Omen",
     "Jett", "Raze", "Skye", "Yoru", "Astra", "KAY/O", "Chamber", "Neon", "Fade", "Harbor",
@@ -21,12 +21,7 @@ AGENTS = [
 
 def get_random_quote():
     agent = random.choice(AGENTS)
-    # Para o KAY/O, substituir / por %2F para o link funcionar corretamente
-    if agent == "KAY/O":
-        url_agent = "KAYO"
-    else:
-        url_agent = agent.replace("/", "%2F")  # Para outros casos com "/"
-    
+    url_agent = "KAYO" if agent == "KAY/O" else agent.replace("/", "%2F")
     url = f"https://valorant.fandom.com/wiki/{url_agent}/Quotes"
 
     response = requests.get(url)
@@ -34,12 +29,11 @@ def get_random_quote():
         return None, None
 
     soup = BeautifulSoup(response.content, 'html.parser')
-
-    # Pega frases que estão em <ul><li> normalmente (ajustável)
     quotes = []
+
     for li in soup.select("ul > li"):
         text = li.get_text(strip=True)
-        if 20 < len(text) < 200:  # Filtra frases muito curtas ou longas
+        if 20 < len(text) < 200:
             quotes.append(text)
 
     if not quotes:
@@ -58,6 +52,23 @@ start_time = None
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
 
+# Botão de XP
+class XPButtonView(View):
+    def __init__(self, winner):
+        super().__init__(timeout=60)
+        self.winner = winner
+
+    @discord.ui.button(label="💸 Reivindicar XP", style=discord.ButtonStyle.green)
+    async def claim_xp(self, interaction: discord.Interaction, button: Button):
+        if interaction.user != self.winner:
+            await interaction.response.send_message("❌ Apenas o vencedor pode clicar.", ephemeral=True)
+            return
+
+        await interaction.response.send_message(
+            f"✅ Usa este comando para receber a recompensa (precisa permissão):\n"
+            f"`/xp add user: {self.winner.mention} amount: 12500`", ephemeral=True
+        )
+
 @bot.command(name="rq")
 async def start_round(ctx):
     global current_agent, current_quote, game_active, winner_found, start_time
@@ -67,7 +78,6 @@ async def start_round(ctx):
         return
 
     agent, quote = get_random_quote()
-
     if not quote:
         await ctx.send("❌ Não foi possível obter agentes ou frases.")
         return
@@ -85,7 +95,6 @@ async def start_round(ctx):
     )
 
     await asyncio.sleep(60)
-
     if not winner_found:
         await ctx.send(f"⏰ Tempo esgotado! A resposta certa era **{current_agent}**.")
         game_active = False
@@ -111,7 +120,10 @@ async def answer_quote(ctx, *, guess):
     if guess.strip().lower() == current_agent.lower():
         winner_found = True
         game_active = False
+
         await ctx.send(f"🎉 Parabéns {ctx.author.mention}, acertaste! Era **{current_agent}**.")
+        view = XPButtonView(ctx.author)
+        await ctx.send("🔘 Clica no botão abaixo para reivindicar XP:", view=view)
     else:
         await ctx.send(f"❌ Errado, {ctx.author.mention}. Tenta outra vez!")
 
