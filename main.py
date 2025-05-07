@@ -4,18 +4,22 @@ from discord.ext import commands
 import requests
 import random
 import asyncio
+import unicodedata
 
-# Intents para o bot
 intents = discord.Intents.default()
 intents.message_content = True
+intents.members = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Função para obter uma localização aleatória e imagem de mapa
+# Função para normalizar nomes de cidades
+def normalize_text(text):
+    return unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('ascii').strip().lower()
+
+# Função para obter cidade e imagem
 def get_random_location():
-    # API GeoDB Cities
     geo_url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
     geo_headers = {
-        "X-RapidAPI-Key": os.environ["GEODB_KEY"],  # Substitua por sua variável no Railway
+        "X-RapidAPI-Key": os.environ["GEODB_KEY"],
         "X-RapidAPI-Host": "wft-geo-db.p.rapidapi.com"
     }
     geo_params = {
@@ -31,14 +35,26 @@ def get_random_location():
     latitude = city_info["latitude"]
     longitude = city_info["longitude"]
 
-    # Gerar URL do Stamen Maps (imagem do mapa da cidade)
-    stamen_url = f"https://stamen-tiles.a.ssl.fastly.net/toner-lite/{int(latitude)}/{int(longitude)}/12.png"
+    mapillary_token = os.environ["MAPILLARY_TOKEN"]
+    mapillary_url = (
+        f"https://graph.mapillary.com/images"
+        f"?access_token={mapillary_token}"
+        f"&fields=thumb_2048_url"
+        f"&closeto={longitude},{latitude}"
+        f"&limit=1"
+    )
 
-    return city_name, latitude, longitude, stamen_url  # Usando a URL do Stamen Maps
+    image_response = requests.get(mapillary_url)
+    image_data = image_response.json()
+    image_url = image_data["data"][0].get("thumb_2048_url") if "data" in image_data and len(image_data["data"]) > 0 else None
 
-# Variáveis de estado do jogo
+    return city_name, latitude, longitude, image_url
+
+# Variáveis de estado
 current_city = None
 start_time = None
+game_active = False
+winner_found = False
 
 @bot.event
 async def on_ready():
@@ -46,16 +62,21 @@ async def on_ready():
 
 @bot.command()
 async def start_game(ctx):
-    global current_city, start_time
+    global current_city, start_time, game_active, winner_found
+
+    if game_active:
+        await ctx.send("⚠️ Já existe um jogo em andamento!")
+        return
 
     current_city, lat, lon, img_url = get_random_location()
+    game_active = True
+    winner_found = False
 
-    msg = (
+    await ctx.send(
         f"🧭 Jogo de Geo-Caching iniciado!\n"
         f"🌍 Latitude: {lat}, Longitude: {lon}\n"
         f"🕐 Tens 60 segundos para adivinhar a cidade!"
     )
-    await ctx.send(msg)
 
     if img_url:
         await ctx.send(img_url)
@@ -64,26 +85,35 @@ async def start_game(ctx):
 
     start_time = asyncio.get_event_loop().time()
     await asyncio.sleep(60)
-    await ctx.send(f"⏰ Tempo esgotado! A cidade correta era **{current_city}**.")
+
+    if not winner_found:
+        await ctx.send("⏰ Tempo esgotado! Ninguém acertou desta vez.")
+    game_active = False
 
 @bot.command()
 async def guess(ctx, *, city_name):
-    global current_city, start_time
+    global current_city, start_time, game_active, winner_found
 
-    if start_time is None:
+    if not game_active:
         await ctx.send("❌ Nenhum jogo em andamento.")
+        return
+
+    if winner_found:
+        await ctx.send("🎉 Já houve um vencedor neste jogo.")
         return
 
     elapsed_time = asyncio.get_event_loop().time() - start_time
     if elapsed_time > 60:
         await ctx.send("⏳ O tempo para adivinhar já acabou.")
+        game_active = False
         return
 
-    # Comparar a cidade fornecida com a cidade correta
-    if city_name.strip().lower() == current_city.lower():
-        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente! A cidade é **{current_city}**.")
+    if normalize_text(city_name) == normalize_text(current_city):
+        winner_found = True
+        game_active = False
+        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, você adivinhou corretamente!")
+        await ctx.send(f"📍 A cidade correta era **{current_city}**.")
+        await ctx.send(f"/xp add user: {ctx.author.mention} amount: 12500")
     else:
-        await ctx.send(f"❌ Errado {ctx.author.mention}, a cidade correta era **{current_city}**.")
+        await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
 
-# Rodando o bot
-bot.run(os.environ["DISCORD_TOKEN"])
