@@ -5,7 +5,6 @@ import json
 import random
 import asyncio
 
-# Intents
 intents = discord.Intents.default()
 intents.message_content = True
 
@@ -17,9 +16,10 @@ current_quote = None
 game_active = False
 winner_found = False
 start_time = None
+winner_user = None
 quotes_data = {}
 
-# Carregar frases do arquivo JSON
+# Carrega o arquivo JSON com as frases
 def load_quotes():
     global quotes_data
     with open("quotes.json", "r", encoding="utf-8") as file:
@@ -37,18 +37,18 @@ async def on_ready():
 
 @bot.command(name="rq")
 async def start_round(ctx):
-    global current_agent, current_quote, game_active, winner_found, start_time
+    global current_agent, current_quote, game_active, winner_found, start_time, winner_user
 
     if game_active:
         await ctx.send("⚠️ Um jogo já está em andamento!")
         return
 
     agent, quote = get_random_quote()
-
     current_agent = agent
     current_quote = quote
     game_active = True
     winner_found = False
+    winner_user = None
     start_time = asyncio.get_event_loop().time()
 
     await ctx.send(
@@ -65,7 +65,7 @@ async def start_round(ctx):
 
 @bot.command(name="aq")
 async def answer_quote(ctx, *, guess):
-    global current_agent, game_active, winner_found
+    global current_agent, game_active, winner_found, winner_user
 
     if not game_active:
         await ctx.send("❌ Nenhum jogo em andamento.")
@@ -84,9 +84,22 @@ async def answer_quote(ctx, *, guess):
     if guess.strip().lower() == current_agent.lower():
         winner_found = True
         game_active = False
-        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, acertaste! Era **{current_agent}**.")
+        winner_user = ctx.author
+
+        class RewardButton(discord.ui.View):
+            @discord.ui.button(label="🎁 Dar XP (12500)", style=discord.ButtonStyle.green)
+            async def give_xp(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if not interaction.user.guild_permissions.manage_guild:
+                    await interaction.response.send_message("❌ Apenas moderadores podem usar este botão.", ephemeral=True)
+                    return
+
+                await interaction.response.send_message(
+                    f"/xp add user: {winner_user.mention} amount: 12500"
+                )
+
+        await ctx.send(
+            f"🎉 Parabéns {winner_user.mention}, acertaste! Era **{current_agent}**.",
+            view=RewardButton()
+        )
     else:
         await ctx.send(f"❌ Errado, {ctx.author.mention}. Tenta outra vez!")
-
-# Rodar bot
-bot.run(os.environ["DISCORD_TOKEN"])
