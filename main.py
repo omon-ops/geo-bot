@@ -72,33 +72,46 @@ async def on_ready():
 
 @bot.command()
 async def start_game(ctx):
-    global current_city, start_time, game_active, winner_found
+    global current_city, start_time, game_active, winner_found, current_lat, current_lon, current_image_url
 
     if game_active:
         await ctx.send("⚠️ Já existe um jogo em andamento!")
         return
 
-    current_city, lat, lon, img_url = get_random_location()
+    # Gera a cidade, latitude, longitude e imagem
+    current_city, current_lat, current_lon, current_image_url = get_random_location()
+    
     game_active = True
     winner_found = False
 
+    # Mensagem inicial com latitude e longitude
     await ctx.send(
         f"🧭 Jogo de Geo-Caching iniciado!\n"
-        f"🌍 Latitude: {lat}, Longitude: {lon}\n"
+        f"🌍 Latitude: {current_lat}, Longitude: {current_lon}\n"
         f"🕐 Tens 60 segundos para adivinhar a cidade!"
     )
 
-    if img_url:
-        await ctx.send(img_url)
+    # Mostrar a imagem, se disponível
+    if current_image_url:
+        await ctx.send(current_image_url)
     else:
         await ctx.send("⚠️ Não foi possível carregar uma imagem de rua para este local.")
 
+    # Inicia o contador de tempo
     start_time = asyncio.get_event_loop().time()
     await asyncio.sleep(60)
 
     if not winner_found:
-        await ctx.send("⏰ Tempo esgotado! Ninguém acertou desta vez.")
+        # Se o tempo expirar e ninguém adivinhar corretamente
+        await ctx.send(f"⏰ Tempo esgotado! Ninguém acertou desta vez.")
+        await ctx.send(f"📍 A cidade correta era **{current_city}**.")
+        
+        if current_image_url:
+            await ctx.send(f"📸 Aqui está a imagem correspondente à latitude e longitude fornecida:")
+            await ctx.send(current_image_url)  # Mostrar a imagem
+
     game_active = False
+
 
 @bot.command()
 async def guess(ctx, *, city_name):
