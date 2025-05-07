@@ -54,6 +54,9 @@ winner_found = False
 @bot.event
 async def on_ready():
     print(f"✅ Bot online como {bot.user}")
+    print("Bot está pronto para receber comandos.")
+    for command in bot.commands:
+        print(f"Comando registrado: {command.name}")
 
 @bot.command()
 async def start_game(ctx):
@@ -119,4 +122,4 @@ async def guess(ctx, *, phrase):
         await ctx.send(f"❌ Errado {ctx.author.mention}, tenta novamente!")
 
 # Rodar bot
-bot.run(os.environ["DISCORD_TOKEN"])
+bot.run(os.environ["DISCORD_TOKEN"])  # Ou diretamente com o seu token aqui
