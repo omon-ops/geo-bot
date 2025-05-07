@@ -239,3 +239,88 @@
     "Ride the current.",
     "They're in over their heads."
   ],
+  "Gekko": [
+    "Wáchale güey, my crew is coming through.",
+    "It's all you, Mosh!",
+    "Blow 'em up, Mosh!",
+    "Get 'em, Wingman!",
+    "Run, little man!",
+    "Wingman's defusing.",
+    "Everybody thank Wingman! Come on, let's hear it!",
+    "Qué padre! My little guy did it!",
+    "Regroup.",
+    "Thrash got 'em!"
+  ],
+  "Deadlock": [
+    "No one escapes my grasp.",
+    "Containment is key.",
+    "They will not breach our defenses.",
+    "Hold the line.",
+    "Their movements are predictable.",
+    "Stay sharp and vigilant.",
+    "I've set the trap; now we wait.",
+    "They underestimate our resolve.",
+    "Let them come; we'll be ready.",
+    "This is our territory."
+  ],
+  "Iso": [
+    "Step into my domain.",
+    "Isolate and eliminate.",
+    "They can't hide from me.",
+    "One by one, they fall.",
+    "Focus. Precision. Victory.",
+    "I've trained for this moment.",
+    "Their tactics are flawed.",
+    "No distractions, only targets.",
+    "I see through their strategies.",
+    "This is the path to mastery."
+  ],
+  "Clove": [
+    "Back from the brink, again.",
+    "Death is just a detour.",
+    "You can't kill what's already dead.",
+    "Let's dance with fate.",
+    "I've seen the other side; it's overrated.",
+    "They thought I was finished? Cute.",
+    "Life's a game, and I'm winning.",
+    "Resilience is my middle name.",
+    "They'll never see me coming.",
+    "I'm the ghost in their machine."
+  ],
+  "Vyse": [
+    "Ride the wave to victory.",
+    "They'll drown in our wake.",
+    "Flow like water, strike like a tsunami.",
+    "The tide is turning.",
+    "Their defenses are porous.",
+    "Let's make a splash.",
+    "Currents favor us today.",
+    "They can't dam our spirit.",
+    "Surge forward!",
+    "We'll wash them away."
+  ],
+  "Tejo": [
+    "Feel the heat of battle.",
+    "Burn them to ashes.",
+    "Ignite the fight.",
+    "They'll feel the scorch.",
+    "Flames guide my path.",
+    "Turn up the heat.",
+    "Their defenses will melt away.",
+    "Inferno unleashed.",
+    "Let's set the world ablaze.",
+    "From embers to inferno."
+  ],
+  "Waylay": [
+    "From the shadows, I strike.",
+    "They won't see me coming.",
+    "Silence is my ally.",
+    "One by one, they fall.",
+    "Darkness is my domain.",
+    "They fear what they can't see.",
+    "A whisper, then nothing.",
+    "Their end is inevitable.",
+    "I move unseen.",
+    "Let the hunt begin."
+  ]
+}
