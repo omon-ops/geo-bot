@@ -6,109 +6,114 @@ import random
 import asyncio
 from bs4 import BeautifulSoup
 
+# Intents
 intents = discord.Intents.default()
 intents.message_content = True
+
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-BASE_URL = "https://valorant.fandom.com"
-CATEGORY_URL = f"{BASE_URL}/wiki/Category:Voice_Lines"
+# Lista dos agentes válidos (nomes devem estar conforme aparecem na URL)
+AGENTS = [
+    "Brimstone", "Phoenix", "Sage", "Sova", "Viper", "Cypher", "Reyna", "Killjoy", "Breach", "Omen",
+    "Jett", "Raze", "Skye", "Yoru", "Astra", "KAY/O", "Chamber", "Neon", "Fade", "Harbor",
+    "Gekko", "Deadlock", "Iso", "Clove", "Vyse", "Tejo", "Waylay"
+]
 
+def get_random_quote():
+    agent = random.choice(AGENTS)
+    # Para o KAY/O, substituir / por %2F para o link funcionar corretamente
+    if agent == "KAY/O":
+        url_agent = "KAYO"
+    else:
+        url_agent = agent.replace("/", "%2F")  # Para outros casos com "/"
+    
+    url = f"https://valorant.fandom.com/wiki/{url_agent}/Quotes"
+
+    response = requests.get(url)
+    if response.status_code != 200:
+        return None, None
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    # Pega frases que estão em <ul><li> normalmente (ajustável)
+    quotes = []
+    for li in soup.select("ul > li"):
+        text = li.get_text(strip=True)
+        if 20 < len(text) < 200:  # Filtra frases muito curtas ou longas
+            quotes.append(text)
+
+    if not quotes:
+        return None, None
+
+    return agent, random.choice(quotes)
+
+# Estado do jogo
 current_agent = None
 current_quote = None
 game_active = False
 winner_found = False
 start_time = None
 
-def get_all_agents():
-    response = requests.get(CATEGORY_URL)
-    soup = BeautifulSoup(response.content, "html.parser")
-    links = soup.select(".category-page__member-link")
+@bot.event
+async def on_ready():
+    print(f"✅ Bot online como {bot.user}")
 
-    agents = []
-    for link in links:
-        href = link.get("href")
-        name = link.text.strip()
-        if "/wiki/" in href and "/Quotes" not in href:
-            agent_name = name
-            agent_url = f"{BASE_URL}/wiki/{agent_name.replace(' ', '_')}/Quotes"
-            agents.append((agent_name, agent_url))
-    return agents
-
-def get_random_quote_from_agent(agent_url):
-    response = requests.get(agent_url)
-    soup = BeautifulSoup(response.content, "html.parser")
-
-    quotes = []
-    for li in soup.select("ul > li"):
-        text = li.get_text(strip=True)
-        if 10 < len(text) < 200:
-            quotes.append(text)
-
-    return random.choice(quotes) if quotes else None
-
-@bot.command()
-async def rq(ctx):
+@bot.command(name="rq")
+async def start_round(ctx):
     global current_agent, current_quote, game_active, winner_found, start_time
 
     if game_active:
         await ctx.send("⚠️ Um jogo já está em andamento!")
         return
 
-    agents = get_all_agents()
-    if not agents:
-        await ctx.send("❌ Não foi possível obter agentes.")
+    agent, quote = get_random_quote()
+
+    if not quote:
+        await ctx.send("❌ Não foi possível obter agentes ou frases.")
         return
 
-    current_agent, agent_url = random.choice(agents)
-    current_quote = get_random_quote_from_agent(agent_url)
-
-    if not current_quote:
-        await ctx.send("❌ Não foi possível obter uma frase do agente.")
-        return
-
+    current_agent = agent
+    current_quote = quote
     game_active = True
     winner_found = False
     start_time = asyncio.get_event_loop().time()
 
     await ctx.send(
-        f"🧠 Adivinha o agente pela frase:\n\n"
-        f"💬 \"{current_quote}\"\n"
-        f"⏱️ Tens 60 segundos para responder com `!aq <nome>`!"
+        f"🧠 Adivinha a frase do agente!\n"
+        f"💬 **{quote}**\n"
+        f"⏱️ Tens 60 segundos! Usa `!aq nome-do-agente` para responder!"
     )
 
     await asyncio.sleep(60)
 
     if not winner_found:
-        await ctx.send(f"⏰ Tempo esgotado! A resposta correta era **{current_agent}**.")
-    game_active = False
+        await ctx.send(f"⏰ Tempo esgotado! A resposta certa era **{current_agent}**.")
+        game_active = False
 
-@bot.command()
-async def aq(ctx, *, guess):
-    global current_agent, current_quote, game_active, winner_found, start_time
+@bot.command(name="aq")
+async def answer_quote(ctx, *, guess):
+    global current_agent, current_quote, game_active, winner_found
 
     if not game_active:
         await ctx.send("❌ Nenhum jogo em andamento.")
         return
 
     if winner_found:
-        await ctx.send("✅ Já houve um vencedor.")
+        await ctx.send("⚠️ Já houve um vencedor.")
         return
 
     elapsed = asyncio.get_event_loop().time() - start_time
     if elapsed > 60:
-        await ctx.send("⏳ O tempo acabou!")
         game_active = False
+        await ctx.send(f"⏰ Tempo esgotado! A resposta era **{current_agent}**.")
         return
 
     if guess.strip().lower() == current_agent.lower():
         winner_found = True
         game_active = False
-        await ctx.send(f"🎉 Parabéns {ctx.author.mention}! A resposta correta era **{current_agent}**!")
+        await ctx.send(f"🎉 Parabéns {ctx.author.mention}, acertaste! Era **{current_agent}**.")
     else:
-        await ctx.send(f"❌ Errado, {ctx.author.mention}! Tenta de novo!")
+        await ctx.send(f"❌ Errado, {ctx.author.mention}. Tenta outra vez!")
 
-@bot.event
-async def on_ready():
-    print(f"✅ Bot online como {bot.user}")
-
+# Rodar bot
 bot.run(os.environ["DISCORD_TOKEN"])
