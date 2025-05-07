@@ -10,7 +10,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Função para obter uma localização aleatória e imagem de rua
+# Função para obter uma localização aleatória e imagem de mapa
 def get_random_location():
     # API GeoDB Cities
     geo_url = "https://wft-geo-db.p.rapidapi.com/v1/geo/cities"
@@ -31,26 +31,10 @@ def get_random_location():
     latitude = city_info["latitude"]
     longitude = city_info["longitude"]
 
-    # API Mapillary para imagem
-    mapillary_token = os.environ["MAPILLARY_TOKEN"]
-    mapillary_url = (
-        f"https://graph.mapillary.com/images"
-        f"?access_token={mapillary_token}"
-        f"&fields=thumb_2048_url"
-        f"&closeto={longitude},{latitude}"
-        f"&limit=1"
-    )
+    # Gerar URL do Stamen Maps (imagem do mapa da cidade)
+    stamen_url = f"https://stamen-tiles.a.ssl.fastly.net/toner-lite/{int(latitude)}/{int(longitude)}/12.png"
 
-    image_response = requests.get(mapillary_url)
-    image_data = image_response.json()
-
-    # Verificar se a resposta contém imagens
-    if "data" in image_data and len(image_data["data"]) > 0:
-        image_url = image_data["data"][0].get("thumb_2048_url")
-    else:
-        image_url = None  # Se não houver imagem, atribuir None
-
-    return city_name, latitude, longitude, image_url
+    return city_name, latitude, longitude, stamen_url  # Usando a URL do Stamen Maps
 
 # Variáveis de estado do jogo
 current_city = None
