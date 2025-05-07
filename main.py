@@ -37,7 +37,7 @@ def get_random_location():
     latitude = city_info["latitude"]
     longitude = city_info["longitude"]
 
-    # Mapillary (imagem)
+    # Mapillary (imagem) - não essencial para a comparação de cidade
     mapillary_token = os.environ["MAPILLARY_TOKEN"]
     mapillary_url = (
         f"https://graph.mapillary.com/images"
@@ -115,6 +115,7 @@ async def guess(ctx, *, city_name):
         game_active = False
         return
 
+    # Verifica se o nome da cidade corresponde
     if normalize_text(city_name) == normalize_text(current_city):
         winner_found = True
         game_active = False
