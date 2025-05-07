@@ -89,17 +89,24 @@ async def answer_quote(ctx, *, guess):
         class RewardButton(discord.ui.View):
             @discord.ui.button(label="🎁 Dar XP (21500)", style=discord.ButtonStyle.green)
             async def give_xp(self, interaction: discord.Interaction, button: discord.ui.Button):
+                # Verificar permissões (apenas mods/admins podem clicar no botão)
                 if not interaction.user.guild_permissions.manage_guild:
                     await interaction.response.send_message("❌ Apenas moderadores podem usar este botão.", ephemeral=True)
                     return
 
+                # Dar a recompensa de XP
                 await interaction.response.send_message(
                     f"/xp add user: {winner_user.mention} amount: 21500"
                 )
 
+        view = RewardButton()
         await ctx.send(
             f"🎉 Parabéns {winner_user.mention}, acertaste! Era **{current_agent}**.",
-            view=RewardButton()
+            view=view
         )
+        bot.add_view(view)
     else:
         await ctx.send(f"❌ Errado, {ctx.author.mention}. Tenta outra vez!")
+
+# Rodar o bot
+bot.run(os.environ["DISCORD_TOKEN"])
